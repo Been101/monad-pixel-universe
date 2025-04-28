@@ -1,61 +1,76 @@
 # Monad Pixel Universe
 
-A decentralized pixel art platform built on the Monad blockchain.
+A decentralized pixel art platform on the blockchain where users can buy, paint, and trade pixels.
 
 ## Features
 
-- Mint and own pixels on a 100x100 grid
-- Paint your pixels with any color
-- Built with Next.js and Hardhat
-- Smart contract deployed on Monad Testnet
+- 10x10 pixel grid (100 NFTs)
+- Buy pixels for 0.01 ETH
+- Paint pixels for 0.001 ETH
+- Color challenges
+- Pixel signatures
+- Daily snapshots
 
-## Getting Started
+## Smart Contract
+
+The smart contract is located in `contracts/MonadPixel.sol`. It implements the following features:
+
+- ERC-721 NFT standard
+- Pixel minting and painting
+- Color challenges
+- Pixel signatures
+- Ownership tracking
+
+## Frontend
+
+The frontend is built with Next.js and Tailwind CSS. It provides a user-friendly interface for:
+
+- Connecting MetaMask wallet
+- Viewing the pixel grid
+- Buying and painting pixels
+- Managing pixel ownership
+
+## Setup
 
 ### Prerequisites
 
-- Node.js (v18 or later)
-- pnpm
+- Node.js 18+
 - MetaMask wallet
+- Hardhat (for contract deployment)
 
 ### Installation
 
 1. Clone the repository
+2. Install dependencies:
 
-```bash
-git clone https://github.com/Been101/monad-pixel-universe.git
-cd monad-pixel-universe
-```
+   ```bash
+   cd web
+   npm install
+   ```
 
-2. Install dependencies
+3. Deploy the smart contract:
 
-```bash
-# Install web dependencies
-cd web
-pnpm install
+   ```bash
+   cd contracts
+   npm install
+   npx hardhat compile
+   npx hardhat deploy
+   ```
 
-# Install contract dependencies
-cd ../contracts
-pnpm install
-```
+4. Update the contract address in `web/app/page.tsx`
 
-3. Configure environment variables
+5. Start the development server:
+   ```bash
+   cd web
+   npm run dev
+   ```
 
-```bash
-# In contracts directory
-cp .env.example .env
-# Edit .env with your private key
+## Usage
 
-# In web directory
-cp .env.example .env.local
-# Edit .env.local with your contract address
-```
-
-4. Start the development server
-
-```bash
-# In web directory
-pnpm dev
-```
+1. Connect your MetaMask wallet
+2. Buy a pixel by clicking on an empty space
+3. Paint your pixel by selecting a color and clicking "Paint"
+4. Challenge other pixels by clicking on them and selecting "Challenge"
 
 ## License
 
