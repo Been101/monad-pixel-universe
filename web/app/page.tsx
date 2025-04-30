@@ -14,6 +14,13 @@ const CONTAINER_SIZE =
 // 合约地址配置
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0x123..."; // 替换为你的合约地址
 
+// 添加 MetaMask 类型定义
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 export default function Home() {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [account, setAccount] = useState<string>("");
@@ -26,86 +33,157 @@ export default function Home() {
 
   useEffect(() => {
     const init = async () => {
-      const ethereumProvider = await detectEthereumProvider();
-      if (ethereumProvider) {
-        // 检查是否是 MetaMask
-        if (!ethereumProvider.isMetaMask) {
-          console.error("Please use MetaMask wallet");
+      try {
+        // 检测以太坊提供者
+        const provider = await detectEthereumProvider();
+        if (!provider) {
+          console.error("Please install MetaMask!");
           return;
         }
 
-        // @ts-ignore - MetaMask provider is compatible with Eip1193Provider
-        const provider = new ethers.BrowserProvider(ethereumProvider);
-        setProvider(provider);
-
-        // Request account access
-        const accounts = await provider.send("eth_requestAccounts", []);
+        // 请求账户访问
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
         setAccount(accounts[0]);
 
-        // Initialize contract
+        // 初始化合约
+        const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await ethersProvider.getSigner();
         const contract = new ethers.Contract(
-          CONTRACT_ADDRESS,
+          process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
           MonadPixelABI,
-          provider
+          signer
         ) as unknown as MonadPixel;
+
         setContract(contract);
 
-        // Load initial pixel data
-        loadPixels();
+        // 监听事件
+        contract.on("PixelMinted", (x, y, owner) => {
+          console.log("Pixel minted:", { x, y, owner });
+        });
+
+        contract.on("PixelUpdated", (x, y, color, owner) => {
+          console.log("Pixel updated:", { x, y, color, owner });
+        });
+
+        contract.on("PixelInfo", (x, y, color, owner) => {
+          console.log("Pixel info:", { x, y, color, owner });
+        });
+
+        // 加载初始像素数据
+        loadPixels(contract);
+      } catch (error) {
+        console.error("Error initializing:", error);
       }
     };
 
     init();
+
+    // 清理事件监听器
+    return () => {
+      if (contract) {
+        contract.removeAllListeners("PixelMinted");
+        contract.removeAllListeners("PixelUpdated");
+        contract.removeAllListeners("PixelInfo");
+      }
+    };
   }, []);
 
-  const loadPixels = async () => {
+  const loadPixels = async (contract: MonadPixel) => {
     if (!contract) return;
 
-    const newPixels = [...pixels];
-    for (let x = 0; x < GRID_SIZE; x++) {
-      for (let y = 0; y < GRID_SIZE; y++) {
-        try {
-          const pixel = await contract.getPixel(x, y);
+    try {
+      const allPixels = await contract.getAllPixels();
+      console.log("allPixels", allPixels);
+      const newPixels = Array(GRID_SIZE * GRID_SIZE).fill({
+        color: "#FFFFFF",
+        owner: "",
+      });
+
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
           const index = y * GRID_SIZE + x;
+          const pixel = allPixels[x][y];
+          console.log("pixel", pixel);
+          console.log("pixel", pixel.color);
           newPixels[index] = {
             color: pixel.color || "#FFFFFF",
             owner: pixel.owner,
           };
-        } catch (error) {
-          // Pixel not minted yet
-          const index = y * GRID_SIZE + x;
-          newPixels[index] = { color: "#FFFFFF", owner: "" };
         }
       }
+
+      console.log("newPixels", newPixels);
+      setPixels(newPixels);
+    } catch (error) {
+      console.error("Error loading pixels:", error);
     }
-    setPixels(newPixels);
   };
 
-  const handlePixelClick = (index: number) => {
+  const handlePixelClick = async (index: number) => {
     setSelectedPixel(index);
   };
 
   const handleMint = async () => {
-    if (!contract || selectedPixel === null) return;
-
-    const x = selectedPixel % GRID_SIZE;
-    const y = Math.floor(selectedPixel / GRID_SIZE);
+    if (!selectedPixel || !color) return;
 
     try {
-      const signer = await provider?.getSigner();
-      if (!signer) {
-        console.error("No signer available");
+      // 检查 MetaMask 是否已安装
+      if (!window.ethereum) {
+        alert("请安装 MetaMask 钱包");
         return;
       }
 
-      const contractWithSigner = contract.connect(signer) as MonadPixel;
-      const tx = await contractWithSigner.mint(x, y, {
-        value: ethers.parseEther("0.001"),
+      // 请求账户访问
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
       });
+      if (accounts.length === 0) {
+        alert("请先连接 MetaMask 钱包");
+        return;
+      }
+
+      // 获取合约实例
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(
+        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!,
+        MonadPixelABI,
+        signer
+      ) as unknown as MonadPixel;
+
+      // 调用 mint 函数，传入坐标和颜色
+      const tx = await contract.mint(
+        selectedPixel % GRID_SIZE,
+        Math.floor(selectedPixel / GRID_SIZE),
+        color,
+        {
+          value: ethers.parseEther("0.001"),
+        }
+      );
+
       await tx.wait();
-      await loadPixels();
+      alert("像素铸造成功！");
+
+      // 更新像素数据
+      const pixelData = await contract.getPixel(
+        selectedPixel % GRID_SIZE,
+        Math.floor(selectedPixel / GRID_SIZE)
+      );
+      const newPixels = pixels.map((pixel, index) => {
+        if (index === selectedPixel) {
+          pixel.color = pixelData.color;
+          pixel.owner = pixelData.owner;
+        }
+
+        return pixel;
+      });
+
+      setPixels(newPixels);
     } catch (error) {
-      console.error("Error minting pixel:", error);
+      console.error("铸造失败:", error);
+      alert("铸造失败，请重试");
     }
   };
 
@@ -127,9 +205,18 @@ export default function Home() {
 
       const tx = await contractWithSigner.paint(x, y, color);
       await tx.wait();
-      await loadPixels();
+      await loadPixels(contract);
     } catch (error) {
       console.error("Error painting pixel:", error);
+    }
+  };
+
+  const printAllPixels = async () => {
+    if (!contract) return;
+    try {
+      await contract.printAllPixels();
+    } catch (error) {
+      console.error("Error printing pixels:", error);
     }
   };
 
@@ -142,6 +229,15 @@ export default function Home() {
           <p className="text-lg">Connected Account: {account}</p>
         </div>
 
+        <div className="mb-4">
+          <button
+            onClick={printAllPixels}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Print All Pixels
+          </button>
+        </div>
+
         <div
           className="grid grid-cols-10 gap-[2px] mb-8 bg-gray-200 p-[2px] mx-auto"
           style={{
@@ -149,7 +245,7 @@ export default function Home() {
             height: `${CONTAINER_SIZE}px`,
           }}
         >
-          {pixels.map((pixel, index) => (
+          {pixels?.map((pixel, index) => (
             <div
               key={index}
               className="cursor-pointer"

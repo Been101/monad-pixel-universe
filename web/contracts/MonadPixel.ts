@@ -1,33 +1,207 @@
-import { Contract, ContractTransactionResponse } from "ethers";
-
-export interface MonadPixel extends Contract {
-  mint: (
-    x: number,
-    y: number,
-    overrides?: { value: bigint }
-  ) => Promise<ContractTransactionResponse>;
-  paint: (
-    x: number,
-    y: number,
-    color: string
-  ) => Promise<ContractTransactionResponse>;
-  getPixel: (
-    x: number,
-    y: number
-  ) => Promise<{
-    exists: boolean;
-    owner: string;
-    color: string;
-    tokenId: bigint;
-  }>;
-}
+import { Contract } from "ethers";
 
 export const MonadPixelABI = [
-  "function mint(uint256 x, uint256 y) public payable",
-  "function paint(uint256 x, uint256 y, string memory color) public",
-  "function getPixel(uint256 x, uint256 y) public view returns (tuple(bool exists, address owner, string color, uint256 tokenId))",
-  "event PixelMinted(uint256 x, uint256 y, address owner, uint256 tokenId)",
-  "event PixelUpdated(uint256 x, uint256 y, string color, address owner)",
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "color",
+        type: "string",
+      },
+    ],
+    name: "mint",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "color",
+        type: "string",
+      },
+    ],
+    name: "paint",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+    ],
+    name: "getPixel",
+    outputs: [
+      {
+        internalType: "string",
+        name: "color",
+        type: "string",
+      },
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAllPixels",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "string",
+            name: "color",
+            type: "string",
+          },
+          {
+            internalType: "address",
+            name: "owner",
+            type: "address",
+          },
+        ],
+        internalType: "struct MonadPixel.Pixel[10][10]",
+        name: "",
+        type: "tuple[10][10]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "printAllPixels",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "withdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    name: "PixelMinted",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "color",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    name: "PixelUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "x",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "y",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "color",
+        type: "string",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    name: "PixelInfo",
+    type: "event",
+  },
 ];
 
-export const MonadPixelBytecode = "0x..."; // 这里需要填入编译后的合约字节码
+export type MonadPixel = Contract;
