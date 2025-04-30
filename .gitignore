@@ -1,6 +1,6 @@
 # Node modules
 web/node_modules/
-contracts/node_modules/
+contract/node_modules/
 
 # Environment variables
 .env
@@ -9,9 +9,9 @@ contracts/node_modules/
 
 # Build outputs
 web/.next/
-contracts/artifacts/
-contracts/cache/
-contracts/typechain-types/
+contract/artifacts/
+contract/cache/
+contract/typechain-types/
 
 # IDE files
 .vscode/
